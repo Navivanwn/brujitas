@@ -6,6 +6,10 @@ public class PlayerInAirState : PlayerState
 {
     private int xInput;
     private bool IsGrounded;
+    private bool jumpInput;
+    private bool jumpInputStop;
+    private bool coyoteTime;
+    private bool isJumping;
     public PlayerInAirState(Player player, PlayerStateMachine stateMachine, PlayerData playerData, string animBoolName) : base(player, stateMachine, playerData, animBoolName)
     {
     }
@@ -32,11 +36,21 @@ public class PlayerInAirState : PlayerState
     {
         base.LogicUpdate();
 
+        CheckCoyoteTime();
+
         xInput = player.InputHandler.NormInputX;
+        jumpInput = player.InputHandler.JumpInput;
+        jumpInputStop = player.InputHandler.JumpInputStop;
+
+        CheckJumpMultiplier();
 
         if (IsGrounded && player.CurrentVelocity.y < 0.01f)
         {
             stateMachine.ChangeState(player.LandState);
+        }
+        else if (jumpInput && player.JumpState.CanJump())
+        {
+            stateMachine.ChangeState(player.JumpState);
         }
         else
         {
@@ -49,9 +63,35 @@ public class PlayerInAirState : PlayerState
         }
     }
 
+    private void CheckJumpMultiplier()
+    {
+         if (isJumping)
+        {
+            if (jumpInputStop)
+            {
+                player.SetVelocityY(player.CurrentVelocity.y * playerData.variableJumpHeightMultiplayer);
+                isJumping = false;
+            }
+            else if (player.CurrentVelocity.y <= 0f)
+            {
+                isJumping = false;
+            }
+        }
+    }
+
     public override void PhysicsUpdate()
     {
         base.PhysicsUpdate();
     }
 
+    private void CheckCoyoteTime()
+    {
+        if (coyoteTime && Time.time > startTime + playerData.coyoteTime)
+        {
+            coyoteTime = false;
+        }
+    }
+
+    public void StartCoyoteTime() => coyoteTime = true;
+    public void SetIsJumping() => isJumping = true;
 }
